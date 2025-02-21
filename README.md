@@ -1,2 +1,3 @@
-# Multi-featured-Android-App
-This Android app brings messaging, scrolling through posts, and video streaming together for a all-in-one experience. Designed for convenience and simplicity, the app eliminates the need to switch between multiple applications, enhancing engagement and enjoying endless entertainment. No more app overload and just one place for it! 
+# Text-To-Scene
+Reading long and complex documents can be time-consuming and overwhelming. The Text-to-Scene Animation Website simplifies this by converting lengthy texts—such as legal documents, books, and research papers—into engaging 2D and 3D animations.
+Using AI-powered summarization, animation rendering, and voice narration, the system helps users grasp key information quickly and effortlessly. By transforming text into visually appealing animations with AI-generated voiceovers, this project makes learning faster, more engaging, and accessible to everyone. 🚀
