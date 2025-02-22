@@ -124,12 +124,11 @@ Contributing 👥
 We welcome contributions! Please read our CONTRIBUTING.md for details.
 
 License 📄
-This project is licensed under the MIT License - see LICENSE.md for details.
+This project is licensed under the MIT License -> (https://opensource.org/licenses/MIT).
 
-Made with ❤️ & 
+Made with ❤️ 
 Let's make learning visual and fun! 🎉
 
-Copy
 
 This README includes:
 1. Eye-catching emojis and badges
