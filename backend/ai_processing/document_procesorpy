@@ -1,0 +1,220 @@
+import os
+import logging
+import time
+import pdfplumber # type: ignore
+from docx import Document # type: ignore
+import pytesseract # type: ignore
+from PIL import Image
+from typing import Optional, Dict, List
+from langchain.text_splitter import RecursiveCharacterTextSplitter # type: ignore
+from langchain.chains import AnalyzeDocumentChain # type: ignore
+from langchain.chains.summarize import load_summarize_chain # type: ignore
+from langchain.chat_models import ChatOpenAI # type: ignore
+from pathlib import Path
+import uuid
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+class DocumentProcessor:
+    def __init__(self):
+        self.text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=4000,
+            chunk_overlap=500,
+            length_function=len
+        )
+        self.llm = ChatOpenAI(temperature=0.5, model_name="gpt-4")
+
+    def process_document(self, file_path: str) -> Dict:
+        """Main processing pipeline for documents"""
+        try:
+            # Extract text based on file type
+            text = self.extract_text(file_path)
+            
+            if not text:
+                raise ValueError("No text extracted from document")
+
+            # Split text into manageable chunks
+            chunks = self.split_text(text)
+            
+            # Generate structured summary
+            summary = self.generate_structured_summary(chunks)
+            
+            # Generate scene breakdown
+            scenes = self.generate_scene_breakdown(summary)
+            
+            return {
+                "text": text,
+                "chunks": chunks,
+                "summary": summary,
+                "scenes": scenes,
+                "metadata": self.get_metadata(file_path)
+            }
+            
+        except Exception as e:
+            logger.error(f"Error processing document: {str(e)}")
+            raise
+
+    def extract_text(self, file_path: str) -> Optional[str]:
+        """Extract text from different file formats"""
+        file_ext = Path(file_path).suffix.lower()
+        
+        try:
+            if file_ext == '.pdf':
+                return self._extract_from_pdf(file_path)
+            elif file_ext == '.docx':
+                return self._extract_from_docx(file_path)
+            elif file_ext in ('.png', '.jpg', '.jpeg'):
+                return self._extract_from_image(file_path)
+            elif file_ext == '.txt':
+                with open(file_path, 'r') as f:
+                    return f.read()
+            else:
+                raise ValueError(f"Unsupported file type: {file_ext}")
+        except Exception as e:
+            logger.error(f"Text extraction failed: {str(e)}")
+            return None
+
+    def _extract_from_pdf(self, file_path: str) -> str:
+        """Extract text from PDF files"""
+        text = []
+        with pdfplumber.open(file_path) as pdf:
+            for page in pdf.pages:
+                text.append(page.extract_text())
+        return "\n".join(text)
+
+    def _extract_from_docx(self, file_path: str) -> str:
+        """Extract text from DOCX files"""
+        doc = Document(file_path)
+        return "\n".join([para.text for para in doc.paragraphs])
+
+    def _extract_from_image(self, file_path: str) -> str:
+        """Extract text from images using OCR"""
+        try:
+            return pytesseract.image_to_string(Image.open(file_path))
+        except Exception as e:
+            logger.error(f"OCR failed: {str(e)}")
+            return ""
+
+    def split_text(self, text: str) -> List[str]:
+        """Split text into manageable chunks"""
+        return self.text_splitter.split_text(text)
+
+    def generate_structured_summary(self, chunks: List[str]) -> Dict:
+        """Generate structured summary using LangChain"""
+        try:
+            summary_chain = load_summarize_chain(
+                self.llm, 
+                chain_type="map_reduce",
+                verbose=True
+            )
+            summarize_document_chain = AnalyzeDocumentChain(
+                combine_docs_chain=summary_chain
+            )
+            
+            result = summarize_document_chain.run(chunks)
+            return {
+                "raw_summary": result,
+                "structured_summary": self._structure_summary(result)
+            }
+        except Exception as e:
+            logger.error(f"Summarization failed: {str(e)}")
+            return {"error": str(e)}
+
+    def _structure_summary(self, raw_summary: str) -> List[Dict]:
+        """Convert raw summary to structured format"""
+        structured = []
+        current_scene = {}
+        
+        for line in raw_summary.split('\n'):
+            line = line.strip()
+            if line.startswith("- Scene"):
+                if current_scene:
+                    structured.append(current_scene)
+                current_scene = {
+                    "scene_number": len(structured) + 1,
+                    "description": line.split(":", 1)[1].strip(),
+                    "key_objects": [],
+                    "duration": 5  # default duration in seconds
+                }
+            elif line.startswith("* Objects:"):
+                current_scene["key_objects"] = [
+                    obj.strip() for obj in line.split(":", 1)[1].split(",")
+                ]
+            elif line.startswith("* Duration:"):
+                current_scene["duration"] = int(line.split(":")[1].strip())
+        
+        if current_scene:
+            structured.append(current_scene)
+            
+        return structured
+
+    def generate_scene_breakdown(self, summary: Dict) -> List[Dict]:
+        """Generate animation scene breakdown using LLM"""
+        try:
+            from langchain.prompts import PromptTemplate # type: ignore
+            from langchain.chains import LLMChain # type: ignore
+            
+            template = """Convert this summary into animation scenes:
+            {summary}
+            
+            Include for each scene:
+            - Main characters/objects
+            - Background description
+            - Animation type (zoom, pan, fade)
+            - Duration in seconds
+            - Voiceover text
+            
+            Format as JSON:"""
+            
+            prompt = PromptTemplate(
+                template=template,
+                input_variables=["summary"]
+            )
+            
+            chain = LLMChain(llm=self.llm, prompt=prompt)
+            result = chain.run(summary["raw_summary"])
+            return self._parse_scene_json(result)
+        except Exception as e:
+            logger.error(f"Scene breakdown failed: {str(e)}")
+            return []
+
+    def _parse_scene_json(self, json_str: str) -> List[Dict]:
+        """Parse JSON scene output from LLM"""
+        try:
+            import json
+            return json.loads(json_str)
+        except json.JSONDecodeError:
+            logger.warning("Invalid JSON format from LLM")
+            return []
+
+    def get_metadata(self, file_path: str) -> Dict:
+        """Extract document metadata"""
+        path = Path(file_path)
+        return {
+            "file_name": path.name,
+            "file_size": path.stat().st_size,
+            "file_type": path.suffix,
+            "processing_id": str(uuid.uuid4()),
+            "timestamp": time.time()
+        }
+
+# Celery task integration
+def process_document_task(file_path: str) -> Dict:
+    """Celery task wrapper for document processing"""
+    try:
+        processor = DocumentProcessor()
+        return processor.process_document(file_path)
+    except Exception as e:
+        logger.error(f"Document processing task failed: {str(e)}")
+        return {"error": str(e)}
+
+if __name__ == "__main__":
+    # Test the processor
+    test_file = "sample.pdf"
+    result = DocumentProcessor().process_document(test_file)
+    print("Processing result:", result)
