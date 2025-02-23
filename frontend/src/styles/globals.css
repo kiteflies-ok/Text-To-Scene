@@ -1,6 +1,9 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* CSS Reset */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
 /* Custom animations */
 @keyframes float {
@@ -9,31 +12,141 @@
 }
 
 /* Custom base styles */
-@layer base {
-  body {
-    @apply antialiased bg-gray-900 text-gray-100;
-  }
- 
-  ::-webkit-scrollbar {
-    @apply w-2;
-  }
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  line-height: 1.5;
+  min-height: 100vh;
+  background-color: #111827; /* Dark theme background */
+  color: #f3f4f6; /* Light text for dark theme */
+  font-size: 16px;
+  padding: 20px;
+}
 
-  ::-webkit-scrollbar-track {
-    @apply bg-gray-800;
-  }
+/* Layout components */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
 
-  ::-webkit-scrollbar-thumb {
-    @apply bg-gray-600 rounded-full hover:bg-gray-500;
-  }
+.header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.main-content {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+/* Section styling */
+.input-section {
+  flex: 1;
+  min-width: 300px;
+  background: #1f2937; /* Dark theme card background */
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.viewer-section {
+  flex: 1;
+  min-width: 300px;
+  height: 500px;
+  background: #1f2937; /* Dark theme card background */
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Form elements */
+.input-field {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  background-color: #374151; /* Dark input background */
+  color: #f3f4f6; /* Light text */
+  border: 1px solid #4b5563;
+  border-radius: 4px;
+  transition: border-color 0.2s ease;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+}
+
+/* Button styles */
+.button {
+  background: #3b82f6; /* Blue button */
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.button:hover {
+  background: #2563eb;
+}
+
+.button:disabled {
+  background: #374151;
+  cursor: not-allowed;
+}
+
+/* Utility classes */
+.error {
+  color: #ef4444; /* Red error text */
+  margin-top: 10px;
+  padding: 8px;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 4px;
+}
+
+/* Scrollbar styles */
+::-webkit-scrollbar {
+  width: 0.5rem;
+}
+
+::-webkit-scrollbar-track {
+  background-color: #1f2937;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #4b5563;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #6b7280;
 }
 
 /* Custom components */
-@layer components {
-  .gradient-text {
-    @apply bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent;
+.gradient-text {
+  background: linear-gradient(to right, #60a5fa, #a78bfa);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Responsive text sizing */
+@media (max-width: 768px) {
+  body {
+    font-size: 14px;
+    padding: 10px;
   }
- 
-  .animate-float {
-    animation: float 3s ease-in-out infinite;
+  
+  .input-section,
+  .viewer-section {
+    min-width: 100%;
   }
 }
